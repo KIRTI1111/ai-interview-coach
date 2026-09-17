@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // pdf-parse loads pdf.js worker files at runtime. Keeping the package external
   // preserves those files instead of folding only part of them into server chunks.
   serverExternalPackages: ["pdf-parse"],
+  outputFileTracingIncludes: {
+    "/api/documents/extract": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+  },
   async headers() {
     return [{
       source: "/(.*)",
