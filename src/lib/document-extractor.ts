@@ -43,10 +43,16 @@ export async function extractDocument(file: File) {
   try {
     if (extension === "pdf") {
       if (!hasPdfSignature(bytes)) throw new DocumentValidationError("This file does not have a valid PDF signature.");
-      const { PDFParse } = await import("pdf-parse");
+      const [{ PDFParse }, { getData: getPdfWorkerData }] = await Promise.all([
+        import("pdf-parse"),
+        import("pdf-parse/worker"),
+      ]);
+      // Serverless bundlers do not always retain pdf.js' worker file. Supplying
+      // the package's embedded worker keeps extraction self-contained.
+      PDFParse.setWorker(getPdfWorkerData());
       const parser = new PDFParse({ data: bytes });
       try {
-        text = (await parser.getText()).text;
+        text = (await parser.getText({ pageJoiner: "" })).text;
       } finally {
         await parser.destroy();
       }
@@ -60,6 +66,8 @@ export async function extractDocument(file: File) {
     }
   } catch (error) {
     if (error instanceof DocumentValidationError) throw error;
+    const diagnostic = error instanceof Error ? `${error.name}: ${error.message}` : "Unknown parser error";
+    console.error(`[document-extraction:${extension}] ${diagnostic}`);
     throw new DocumentValidationError("We could not read this document. It may be damaged, encrypted, or use an unsupported encoding.");
   }
 

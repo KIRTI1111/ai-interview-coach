@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // pdf-parse loads pdf.js worker files at runtime. Keeping the package external
+  // preserves those files instead of folding only part of them into server chunks.
+  serverExternalPackages: ["pdf-parse"],
   async headers() {
     return [{
       source: "/(.*)",
