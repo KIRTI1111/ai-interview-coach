@@ -43,7 +43,13 @@ export async function extractDocument(file: File) {
   try {
     if (extension === "pdf") {
       if (!hasPdfSignature(bytes)) throw new DocumentValidationError("This file does not have a valid PDF signature.");
-      const { PDFParse } = await import("pdf-parse");
+      const [{ PDFParse }, { getData: getPdfWorkerData }] = await Promise.all([
+        import("pdf-parse"),
+        import("pdf-parse/worker"),
+      ]);
+      // Importing the worker entry also makes Next trace pdf-parse's native
+      // canvas dependency, which supplies DOMMatrix in Vercel's Node runtime.
+      PDFParse.setWorker(getPdfWorkerData());
       const parser = new PDFParse({ data: bytes });
       try {
         text = (await parser.getText({ pageJoiner: "" })).text;
